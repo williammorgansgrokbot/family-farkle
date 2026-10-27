@@ -458,7 +458,7 @@ document.body.insertAdjacentHTML('beforeend',BADGEDEFS);
 // store: {Name:{earned:{id:ts},games:n,wins:n}}
 var BS={};try{BS=JSON.parse(sget('fkBadges')||'{}')}catch(e){}
 function bget(n){n=nk(n);return BS[n]=BS[n]||{earned:{},games:0,wins:0}}
-function bsave(n){sset('fkBadges',JSON.stringify(BS));var d=db();if(d){Promise.resolve(d.set(ROOT+'badges/'+nk(n),BS[nk(n)])).catch(function(e){console.warn('badge write',e&&e.message)})}}
+function bsave(n){sset('fkBadges',JSON.stringify(BS));var d=db();if(d&&BREADY){Promise.resolve(d.set(ROOT+'badges/'+nk(n),BS[nk(n)])).catch(function(e){console.warn('badge write',e&&e.message)})}}
 var TQ=[],TON=false;
 function toast(n,id){TQ.push([n,id]);if(!TON)nextToast()}
 function nextToast(){var t=TQ.shift();if(!t){TON=false;return}TON=true;var b=BD[t[1]-1],el=$('toast');el.innerHTML=badgeSVG(b)+'<div><small>BADGE EARNED · '+esc(t[0])+'</small><b>'+esc(b[1])+'</b></div>';el.classList.add('on');sfx('badge');
@@ -475,9 +475,10 @@ function awardEnd(st){var ps=st.players,sorted=ps.map(function(p){return p.score
 function awardLater(n,ids){if(ids.length)setTimeout(function(){ids.forEach(function(id){award(n,id)})},850)}
 function scoredIds(v){var c=counts(v).slice(1);return v.length===6&&c.filter(function(x){return x===2}).length===3?[6]:[]}
 SFX.badge=function(){[784,988,1319].forEach(function(f,i){tone(f,i*.09,.25,'triangle',.18)});tone(1568,.3,.5,'sine',.12)};
-(function(){var d=db();if(!d)return;d.on(ROOT+'badges',function(v){v=v||{};var inGame=S?S.players.map(function(p){return nk(p.name)}):[];
+var BREADY=false;
+(function(){var d=db();if(!d){BREADY=true;return}Promise.resolve(d.get(ROOT+'badgesReset')).catch(function(){return 0}).then(function(ep){ep=+ep||0;var le=+sget('fkBadgesEpoch')||0;if(ep&&le<ep){BS={};sset('fkBadges','{}');sset('fkBadgesEpoch',String(ep))}BREADY=true;d.on(ROOT+'badges',function(v){v=v||{};var inGame=S?S.players.map(function(p){return nk(p.name)}):[];
  Object.keys(v).forEach(function(n){var r=v[n]||{},l=bget(n);Object.keys(r.earned||{}).forEach(function(id){if(!l.earned[id]){l.earned[id]=r.earned[id];if(inGame.indexOf(n)>=0)toast(n,+id)}else l.earned[id]=Math.min(l.earned[id],r.earned[id])});
-  l.games=Math.max(l.games|0,r.games|0);l.wins=Math.max(l.wins|0,r.wins|0)});sset('fkBadges',JSON.stringify(BS));if(!$('ovBadges').classList.contains('hidden'))renderCase()})})();
+  l.games=Math.max(l.games|0,r.games|0);l.wins=Math.max(l.wins|0,r.wins|0)});sset('fkBadges',JSON.stringify(BS));if(!$('ovBadges').classList.contains('hidden'))renderCase()})})})();
 var CASE=null;
 function openCase(n){CASE=nk(n);renderCase();ov('ovBadges',1);sfx('tap')}
 function renderCase(){var r=bget(CASE),c=Object.keys(r.earned).length;
